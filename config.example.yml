@@ -1,0 +1,15 @@
+webhook:
+  url: 'https://discord.com/api/webhooks/{webhook.id}/{webhook.token}'
+
+bridges: 
+  - name: '@username@example.com' # or whatever you want it to be called
+    host: 'example.com'
+    user_id: '1234567890'
+    
+  - name: '@username@example.com' # or whatever you want it to be called
+    host: 'example.com'
+    user_id: '1234567890'
+
+  - name: '@username@example.com' # or whatever you want it to be called
+    host: 'example.com'
+    user_id: '1234567890'
