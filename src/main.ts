@@ -43,23 +43,28 @@ console.log(config, "\n");
 const { bridges, webhook: { url } } = config;
 
 // Fetch most recent post from each bridge.
-bridges.forEach(async ({ name, host, user_id }) => {
-  const post = await getMostRecentPost({ host, user_id });
-  console.log(`Latest post from ${name}:`, post);
-  const lastPostId = getLastPostId(name);
-  if (lastPostId === post.postId) {
-    console.log("No new posts, skipping...");
-    return;
-  }
-  upsertBridge(name, post.postId);
-  postToDiscordWebhook(url, { content: post.url, name });
-  return;
-});
-
+console.log("Fetching most recent posts...");
+await Promise.all(
+  bridges.map(
+    async ({ name, host, user_id }) => {
+      const post = await getMostRecentPost({ host, user_id });
+      console.log(`Latest post from ${name}:`, post);
+      const lastPostId = getLastPostId(name);
+      if (lastPostId === post.postId) {
+        console.log(`No new posts from ${name}, skipping...`);
+        return;
+      }
+      upsertBridge(name, post.postId);
+      postToDiscordWebhook(url, { content: post.url, name });
+      return;
+    },
+  ),
+);
 async function checkForNewPosts() {
+  console.log("Checking for new posts...");
   await Promise.all(
     bridges.map(
-      ({ name, host, user_id }) => (async () => {
+      async ({ name, host, user_id }) => {
         const lastPostId = getLastPostId(name);
         if (typeof lastPostId !== "string") {
           throw new Error(
@@ -72,7 +77,7 @@ async function checkForNewPosts() {
           postId: lastPostId,
         });
         if (posts.length === 0) {
-          console.log("No new posts, skipping...");
+          console.log(`No new posts from ${name}, skipping...`);
           return;
         }
         console.log(`New posts from ${name}:`, posts);
@@ -82,14 +87,14 @@ async function checkForNewPosts() {
         });
         upsertBridge(name, posts[0].postId);
         return;
-      }),
+      },
     ),
   );
 }
 
 // Run eternally.
 while (true) {
-  await checkForNewPosts();
   // Delay for specified amount before running again.
   await sleep(delaySeconds);
+  await checkForNewPosts();
 }
