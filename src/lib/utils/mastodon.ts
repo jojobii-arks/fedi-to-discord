@@ -1,25 +1,14 @@
+// deno-lint-ignore-file no-explicit-any
 import { Status } from "../types.ts";
+import { EmbedBuilder } from "discord";
+import transformHtmlToMarkdown from "./transformHtmlToMarkdown.ts";
+import config from "../config.ts";
 
 export type StatusMastodon = {
   id: string;
   created_at: string;
-  in_reply_to_id: string;
-  in_reply_to_account_id: string;
-  sensitive: boolean;
-  spoiler_text: string;
-  visibility: string;
-  language: string;
-  uri: string;
   url: string;
-  replies_count: number;
-  reblogs_count: number;
-  favourites_count: number;
-  // deno-lint-ignore no-explicit-any
-  edited_at: any;
-  local_only: boolean;
   content: string;
-  // deno-lint-ignore no-explicit-any
-  reblog: any;
   account: {
     id: string;
     username: string;
@@ -27,7 +16,7 @@ export type StatusMastodon = {
     display_name: string;
     locked: boolean;
     bot: boolean;
-    discoverable: boolean;
+    discoverable: any;
     group: boolean;
     created_at: string;
     note: string;
@@ -41,35 +30,41 @@ export type StatusMastodon = {
     statuses_count: number;
     last_status_at: string;
     noindex: boolean;
-    // deno-lint-ignore no-explicit-any
     emojis: Array<any>;
-    // deno-lint-ignore no-explicit-any
     roles: Array<any>;
     fields: Array<{
       name: string;
       value: string;
-      // deno-lint-ignore no-explicit-any
       verified_at: any;
     }>;
   };
-  // deno-lint-ignore no-explicit-any
-  media_attachments: Array<any>;
-  mentions: Array<{
+  media_attachments: Array<{
     id: string;
-    username: string;
+    type: string;
     url: string;
-    acct: string;
+    preview_url: string;
+    remote_url: any;
+    preview_remote_url: any;
+    text_url: any;
+    meta: {
+      original: {
+        width: number;
+        height: number;
+        size: string;
+        aspect: number;
+      };
+      small: {
+        width: number;
+        height: number;
+        size: string;
+        aspect: number;
+      };
+    };
+    description: any;
+    blurhash: string;
   }>;
-  // deno-lint-ignore no-explicit-any
-  tags: Array<any>;
-  // deno-lint-ignore no-explicit-any
-  emojis: Array<any>;
-  // deno-lint-ignore no-explicit-any
-  reactions: Array<any>;
-  // deno-lint-ignore no-explicit-any
-  card: any;
-  // deno-lint-ignore no-explicit-any
-  poll: any;
+  mentions: Array<any>;
+  [key: string]: any;
 };
 
 export async function getMostRecentPost(
@@ -90,6 +85,7 @@ export async function getMostRecentPost(
   return {
     postId: recentPost.id,
     url: recentPost.url,
+    raw: recentPost,
   };
 }
 
@@ -120,7 +116,55 @@ export async function getPostsSincePostId(
   return posts.map((post) => ({
     postId: post.id,
     url: post.url,
+    raw: post,
   }));
+}
+
+/**
+ * Transform a Mastodon post to an array of Discord embeds.
+ */
+export function transformMastodonPostToDiscordEmbeds(post: StatusMastodon) {
+  // Get instance host of post.
+  const host = new URL(post.url).hostname;
+
+  // Create first embed containing all metadata of post.
+  const mainEmbed = new EmbedBuilder()
+    .setTitle(post.account.display_name)
+    .setURL(post.url)
+    .setAuthor({
+      name: "@" + post.account.username + "@" + host,
+      url: post.account.url,
+      iconURL: post.account.avatar,
+    })
+    .setDescription(transformHtmlToMarkdown(post.content))
+    .setTimestamp(new Date(post.created_at))
+    .setFooter({
+      text: new URL(post.url).hostname,
+      iconURL: config.webhook.icon_url,
+    });
+
+  // Initialzie new array for other embeds.
+  const restEmbeds = [];
+
+  // If there are media attachments, add them to the embeds.
+  if (post.media_attachments.length > 0) {
+    // First attachment is added to the main embed.
+    const [firstAttachment, ...restAttachments] = post.media_attachments;
+    mainEmbed.setImage(firstAttachment.url);
+
+    // Add the rest of the attachments as new embeds.
+    if (restAttachments.length > 0) {
+      restEmbeds.push(...restAttachments.map((attachment) => {
+        const embed = new EmbedBuilder()
+          .setURL(post.url)
+          .setImage(attachment.url);
+        return embed;
+      }));
+    }
+  }
+
+  // Return array of embeds.
+  return [mainEmbed, ...restEmbeds];
 }
 
 /** Import to test... */

@@ -1,16 +1,18 @@
-// Post content to Discord Webhook URL
+import { EmbedBuilder, WebhookClient } from "discord";
+import { webhook } from "../config.ts";
+
+const webhookClient = new WebhookClient({
+  url: webhook.url,
+});
+
 export async function postToDiscordWebhook(
-  webhookUrl: string,
-  { content, name }: { content: string; name: string },
-): Promise<void> {
-  const response = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Could not post to Discord webhook: ${response.status} ${response.statusText}`,
-    );
+  embeds: EmbedBuilder[],
+) {
+  try {
+    await webhookClient.send({
+      embeds,
+    });
+  } catch (e) {
+    console.error("Error while posting to Discord webhook:", e);
   }
 }

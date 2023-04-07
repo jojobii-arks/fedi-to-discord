@@ -1,46 +1,14 @@
 import "./lib/clients/db.ts";
 import { getLastPostId, upsertBridge } from "./lib/clients/db.ts";
-import { parse as parseYaml } from "yaml";
-import { ConfigSchema } from "./lib/schemas.ts";
-import { colors } from "colors";
 import {
   getMostRecentPost,
   getPostsSincePostId,
+  transformMastodonPostToDiscordEmbeds,
 } from "./lib/utils/mastodon.ts";
 import { postToDiscordWebhook } from "./lib/utils/discord.ts";
 import { sleep } from "sleep";
+import { bridges } from "./lib/config.ts";
 const delaySeconds = 300;
-
-// read config
-function readConfig() {
-  try {
-    Deno.readTextFileSync("config.yml");
-  } catch {
-    console.log(colors.bold.red("\nUnable to find `config.yml`..."));
-    console.log(
-      colors.italic("Please put a `config.yml` file in the root folder.\n"),
-    );
-    throw new Error("Could not find config.yml");
-  }
-
-  try {
-    return ConfigSchema.parse(parseYaml(Deno.readTextFileSync("config.yml")));
-  } catch {
-    console.log(colors.bold.red("\nUnable to parse `config.yml`..."));
-    console.log(
-      colors.italic(
-        "Please view the example, `config.example.yml`, in the repository.\n",
-      ),
-    );
-    throw new Error("Could not parse config.yml");
-  }
-}
-
-const config = readConfig();
-console.log(colors.bold.cyan("\nUsing Config:\n"));
-console.log(config, "\n");
-
-const { bridges, webhook: { url } } = config;
 
 // Fetch most recent post from each bridge.
 console.log("Fetching most recent posts...");
@@ -48,14 +16,17 @@ await Promise.all(
   bridges.map(
     async ({ name, host, user_id }) => {
       const post = await getMostRecentPost({ host, user_id });
-      console.log(`Latest post from ${name}:`, post);
+      console.log(`Latest post from ${name}:`, {
+        postId: post.postId,
+        url: post.url,
+      });
       const lastPostId = getLastPostId(name);
       if (lastPostId === post.postId) {
         console.log(`No new posts from ${name}, skipping...`);
         return;
       }
       upsertBridge(name, post.postId);
-      postToDiscordWebhook(url, { content: post.url, name });
+      postToDiscordWebhook(transformMastodonPostToDiscordEmbeds(post.raw));
       return;
     },
   ),
@@ -82,10 +53,17 @@ async function checkForNewPosts() {
             console.log(`No new posts from ${name}, skipping...`);
             return;
           }
-          console.log(`New posts from ${name}:`, posts);
+          console.log(
+            `New posts from ${name}:`,
+            posts.map((post) => (
+              { postId: post.postId, url: post.url }
+            )),
+          );
           posts.forEach((post) => {
             console.log("Posting to Discord:", post.url);
-            postToDiscordWebhook(url, { content: post.url, name });
+            postToDiscordWebhook(
+              transformMastodonPostToDiscordEmbeds(post.raw),
+            );
           });
           upsertBridge(name, posts[0].postId);
           return;
