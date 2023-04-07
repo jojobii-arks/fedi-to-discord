@@ -71,22 +71,27 @@ async function checkForNewPosts() {
             "This should've been initialized to a string value.... Ending program now.",
           );
         }
-        const posts = await getPostsSincePostId({
-          host,
-          user_id,
-          postId: lastPostId,
-        });
-        if (posts.length === 0) {
-          console.log(`No new posts from ${name}, skipping...`);
+
+        try {
+          const posts = await getPostsSincePostId({
+            host,
+            user_id,
+            postId: lastPostId,
+          });
+          if (posts.length === 0) {
+            console.log(`No new posts from ${name}, skipping...`);
+            return;
+          }
+          console.log(`New posts from ${name}:`, posts);
+          posts.forEach((post) => {
+            console.log("Posting to Discord:", post.url);
+            postToDiscordWebhook(url, { content: post.url, name });
+          });
+          upsertBridge(name, posts[0].postId);
           return;
+        } catch (e) {
+          console.log("Error while checking for new posts:", e);
         }
-        console.log(`New posts from ${name}:`, posts);
-        posts.forEach((post) => {
-          console.log("Posting to Discord:", post.url);
-          postToDiscordWebhook(url, { content: post.url, name });
-        });
-        upsertBridge(name, posts[0].postId);
-        return;
       },
     ),
   );
