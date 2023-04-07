@@ -14,6 +14,7 @@ export type StatusMastodon = {
   replies_count: number;
   reblogs_count: number;
   favourites_count: number;
+  // deno-lint-ignore no-explicit-any
   edited_at: any;
   local_only: boolean;
   content: string;
@@ -40,11 +41,14 @@ export type StatusMastodon = {
     statuses_count: number;
     last_status_at: string;
     noindex: boolean;
+    // deno-lint-ignore no-explicit-any
     emojis: Array<any>;
+    // deno-lint-ignore no-explicit-any
     roles: Array<any>;
     fields: Array<{
       name: string;
       value: string;
+      // deno-lint-ignore no-explicit-any
       verified_at: any;
     }>;
   };
