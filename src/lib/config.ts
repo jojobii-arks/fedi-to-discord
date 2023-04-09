@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const ConfigSchema = z.object({
   webhook: z.object({
-    url: z.string(),
+    urls: z.array(z.string()),
     icon_url: z.string().default(
       "https://gitlab.com/ayush-sharma/to-the-fediverse/-/raw/master/static/images/icon.png",
     ),
