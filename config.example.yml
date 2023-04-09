@@ -1,5 +1,7 @@
 webhook:
-  url: 'https://discord.com/api/webhooks/{webhook.id}/{webhook.token}'
+  urls: 
+  - 'https://discord.com/api/webhooks/{webhook.id}/{webhook.token}'
+  - 'https://discord.com/api/webhooks/{webhook.id}/{webhook.token}'
   embed_icon: 'https://gitlab.com/ayush-sharma/to-the-fediverse/-/raw/master/static/images/icon.png'
 
 bridges: 
