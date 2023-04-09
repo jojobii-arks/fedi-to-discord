@@ -5,7 +5,7 @@ import {
   getPostsSincePostId,
   transformMastodonPostToDiscordEmbeds,
 } from "./lib/utils/mastodon.ts";
-import { postToDiscordWebhook } from "./lib/utils/discord.ts";
+import { postToDiscordWebhooks } from "./lib/utils/discord.ts";
 import { sleep } from "sleep";
 import { bridges } from "./lib/config.ts";
 const delaySeconds = 300;
@@ -26,7 +26,7 @@ await Promise.all(
         return;
       }
       upsertBridge(name, post.postId);
-      postToDiscordWebhook(transformMastodonPostToDiscordEmbeds(post.raw));
+      postToDiscordWebhooks(transformMastodonPostToDiscordEmbeds(post.raw));
       return;
     },
   ),
@@ -61,7 +61,7 @@ async function checkForNewPosts() {
           );
           posts.forEach((post) => {
             console.log("Posting to Discord:", post.url);
-            postToDiscordWebhook(
+            postToDiscordWebhooks(
               transformMastodonPostToDiscordEmbeds(post.raw),
             );
           });

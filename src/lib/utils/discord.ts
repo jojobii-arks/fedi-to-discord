@@ -1,18 +1,17 @@
 import { EmbedBuilder, WebhookClient } from "discord";
 import { webhook } from "../config.ts";
 
-const webhookClient = new WebhookClient({
-  url: webhook.url,
-});
-
-export async function postToDiscordWebhook(
+export async function postToDiscordWebhooks(
   embeds: EmbedBuilder[],
 ) {
-  try {
-    await webhookClient.send({
-      embeds,
-    });
-  } catch (e) {
-    console.error("Error while posting to Discord webhook:", e);
-  }
+  await Promise.all((webhook.urls).map(async (url) => {
+    const webhookClient = new WebhookClient({ url });
+    try {
+      await webhookClient.send({
+        embeds,
+      });
+    } catch (e) {
+      console.error("Error while posting to Discord webhook:", e);
+    }
+  }));
 }
